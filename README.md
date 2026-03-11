@@ -1,6 +1,7 @@
 # RISC-V RV32I (32-bit address space)
 
 ## 🏗️ The 5 Layers (bottom to top)
+```bash
 ┌─────────────────────────────┐
 │  5. PROGRAMS (ELF binaries) │  ← what you run
 ├─────────────────────────────┤
@@ -13,10 +14,11 @@
 │  1. MEMORY + REGISTERS      │  ← the raw hardware state
 └─────────────────────────────┘
 You build bottom up. Layer 1 first, layer 5 last.
-
+```
 ## 📋 Every function you will write — in order
 
 ### LAYER 1 — Foundation
+```bash
 RISCVState struct
 │
 ├── memory[]     → the RAM
@@ -34,9 +36,10 @@ mem_write32()    → write 4 bytes to memory[addr]
 
 reg_read()       → return regs[i]  (x0 always returns 0)
 reg_write()      → regs[i] = val   (x0 write is ignored)
-
+```
 
 ### LAYER 2 — Decode
+```bash
 cpu_step()       → one full clock cycle
 │
 ├── FETCH:   instr = mem_read32(pc)
@@ -50,9 +53,10 @@ cpu_step()       → one full clock cycle
 │            funct7 = (instr >> 25) & 0x7F
 │
 └── EXECUTE: switch(opcode) → call the right handler
-
+```
 
 ### LAYER 3 — Execute (one function per opcode group)
+```bash
 exec_rtype()     → ADD SUB AND OR XOR SLL SRL SRA SLT SLTU
 │                  opcode 0x33
 │                  uses: rd, rs1, rs2, funct3, funct7
@@ -88,8 +92,10 @@ exec_lui()       → LUI
 exec_auipc()     → AUIPC
 │                  opcode 0x17
 │                  does: rd = pc + (imm << 12)
+```
 
 ### LAYER 4 — Syscalls
+```bash
 exec_ecall()     → opcode 0x73
 │
 ├── reads a0 (x10) to know which syscall
@@ -97,8 +103,10 @@ exec_ecall()     → opcode 0x73
 ├── case 1  → write()  → print string to terminal
 ├── case 10 → exit()   → stop the emulator
 └── case 93 → exit()   → Linux exit syscall
+```
 
 ### LAYER 5 — Program Loader
+```bash
 load_elf()       → reads a compiled .elf binary file
 │
 ├── open the file
@@ -106,10 +114,11 @@ load_elf()       → reads a compiled .elf binary file
 ├── read program headers → find loadable segments
 ├── copy each segment → memcpy into memory[] at correct address
 └── set pc = entry point from ELF header
-
+```
 
 
 ## 🔄 The main loop — how it all connects
+```bash
 main()
 │
 ├── init()              → zero the CPU
@@ -123,6 +132,8 @@ main()
     │   └── execute → exec_rtype / exec_load / exec_branch / etc
     │
     └── stop when ECALL exit is hit
+
+```
 
 ## 📐 Rule for every exec function
 Every exec function follows the same pattern:
