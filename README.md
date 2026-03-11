@@ -133,9 +133,3 @@ Every exec function follows the same pattern:
 5. branches/jumps: set pc directly and RETURN (skip pc+4)
    everything else: do nothing, cpu_step adds pc+4
 
-✅ Where you are right now 
-Layer 1:  struct ✅  init ✅  mem_read32 ✅
-                              mem_write32 ← write this next
-          reg_read / reg_write ← then these
-Layer 2:  cpu_step ← then this
-Layer 3:  exec functions ← one at a time after that
