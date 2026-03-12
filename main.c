@@ -6,7 +6,7 @@
 // Structure
 typedef struct {
     uint8_t memory[MEM_SIZE]; // entire simulated RAM.
-    uint32_t PC;
+    uint32_t pc;
     uint32_t regs[32];// register file
 
 }RISKVstate;
@@ -15,14 +15,49 @@ RISKVstate rv;
 
 int init(void){
     memset(&rv,0,sizeof(rv));// fill memmory or set memory with 0's
-    rv.PC=0x00000000;
+    rv.pc=0x00000000;
 
     return 0;
 }
-// memory read
+// memory read 32 bit
 uint32_t mem_read32(RISKVstate *cpu, uint32_t addr){
-    return *(uint32_t *)&cpu->memory[addr];//pointer casting 
-      
+    return *(uint32_t *)&cpu->memory[addr];//pointer casting      
 }
 
-uint32_t mem_wite32()
+// write value into memory at addr 32 bit
+void mem_write32(RISKVstate *cpu, uint32_t addr, uint32_t value){
+    *(uint32_t *)&cpu->memory[addr] = value;
+}
+
+// 8 bit memory
+uint8_t mem_read8(RISKVstate * cpu, uint32_t addr){
+    return cpu->memory[addr];
+}
+
+void mem_write8(RISKVstate * cpu,uint32_t addr, uint8_t value){
+    cpu->memory[addr]=value;
+}
+
+//16 bit memory
+uint16_t mem_read16(RISKVstate * cpu, uint32_t addr){
+    return *(uint16_t *) &cpu->memory[addr];
+}
+
+void mem_write16(RISKVstate * cpu,uint32_t addr,  uint16_t value){
+    *(uint16_t *)&cpu->memory[addr]=value;
+}
+
+//reg_read & reg_write 
+uint32_t reg_read32(RISKVstate * cpu, uint32_t reg){
+    if (reg==0) return 0; //x0 always return 0
+    return cpu->regs[reg];
+}
+
+void reg_write32(RISKVstate *cpu, uint32_t reg, uint32_t value){
+    if (reg==0) return; //x0 ignores writes
+    cpu->regs[reg]= value;
+}
+
+void cpu_loop(RISKVstate *cpu){
+    
+}

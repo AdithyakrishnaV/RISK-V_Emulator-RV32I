@@ -143,4 +143,3 @@ Every exec function follows the same pattern:
 4. write to destination register (rd)
 5. branches/jumps: set pc directly and RETURN (skip pc+4)
    everything else: do nothing, cpu_step adds pc+4
-
