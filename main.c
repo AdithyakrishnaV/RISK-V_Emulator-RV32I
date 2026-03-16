@@ -72,8 +72,6 @@ void cpu_loop(RISKVstate *cpu){
 
     //execute
     
-
-    
     // 3. EXECUTE - switch on opcode 
 
     // 4. advance pc by 4
