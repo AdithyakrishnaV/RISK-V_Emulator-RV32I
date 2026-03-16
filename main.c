@@ -59,5 +59,22 @@ void reg_write32(RISKVstate *cpu, uint32_t reg, uint32_t value){
 }
 
 void cpu_loop(RISKVstate *cpu){
+    //fetch - read instruction at current pc
+    uint32_t inst = mem_read32(cpu, cpu->pc);
+
+    //decode
+    uint32_t opcode = inst & 0x7F;
+    uint32_t  rd    = (inst >> 7) & 0x1F;
+    uint32_t funct3 = (inst >> 12) & 0x07;
+    uint32_t rs1    = (inst >> 15) & 0x1F; 
+    uint32_t rs2    = (inst >> 20) & 0x1F;
+    uint32_t funct7 = (inst >> 25) & 0x7F;
+
+    //execute
     
+
+    
+    // 3. EXECUTE - switch on opcode 
+
+    // 4. advance pc by 4
 }
