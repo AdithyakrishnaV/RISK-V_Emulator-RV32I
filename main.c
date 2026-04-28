@@ -5,7 +5,7 @@
 
 // Structure
 typedef struct {
-    uint8_t memory[MEM_SIZE]; // entire simulated RAM.
+    uint8_t memory[MEM_SIZE]; // entire simulated RAM. 
     uint32_t pc;
     uint32_t regs[32];// register file
 
@@ -59,7 +59,8 @@ void reg_write32(RISKVstate *cpu, uint32_t reg, uint32_t value){
 }
 
 void cpu_loop(RISKVstate *cpu){
-    //fetch - read instruction at current pc
+    while(1){
+        //fetch - read instruction at current pc
     uint32_t inst = mem_read32(cpu, cpu->pc);
 
     //decode
@@ -70,9 +71,162 @@ void cpu_loop(RISKVstate *cpu){
     uint32_t rs2    = (inst >> 20) & 0x1F;
     uint32_t funct7 = (inst >> 25) & 0x7F;
 
+    int32_t imm = (int32_t)inst >> 20; //I-type immediate is bits [31:20], so shift right by 20
+
+    uint32_t shamt = (inst >> 20) & 0x1F; //shamt is just the lower 5 bits of the imm
+
     //execute
+    switch(opcode){
+        case 0x33:// R-type: operations between two registers → result goes into a third register.
+            switch(funct3){
+                case 0x0: // ADD SUB
+                    if (funct7==0x00)// ADD 
+                        reg_write32(cpu,rd, reg_read32(cpu, rs1)+ reg_read32(cpu, rs2));
+
+                    else if (funct7==0x20)// SUB
+                        reg_write32(cpu,rd, reg_read32(cpu, rs1)- reg_read32(cpu, rs2));
+                    break;
+
+                case 0x1://SLL 
+                    reg_write32(cpu, rd, reg_read32(cpu, rs1)<< reg_read32(cpu,rs2));
+                    break;
+
+                case 0x2://SLT (signed comparison)
+                    reg_write32(cpu, rd, (int32_t)reg_read32(cpu, rs1) < (int32_t)reg_read32(cpu,rs2) ? 1:0);
+                    break;
+
+                case 0x3://SLTU (unsigned comparison)
+                    reg_write32(cpu, rd, reg_read32(cpu, rs1) < reg_read32(cpu,rs2) ? 1:0);
+                    break;
+
+                case 0x4://XOR
+                    reg_write32(cpu, rd, reg_read32(cpu, rs1) ^ reg_read32(cpu,rs2));
+                    break;
+
+                case 0x5:
+                    if (funct7==0x00)//SRL
+                        reg_write32(cpu, rd, reg_read32(cpu, rs1) >> reg_read32(cpu,rs2));
+                    else if(funct7==0x20)//SRA
+                        reg_write32(cpu, rd, (int32_t)reg_read32(cpu, rs1) >> (int32_t)reg_read32(cpu,rs2));
+                    break;
+
+                case 0x6://OR
+                    reg_write32(cpu, rd, reg_read32(cpu, rs1) | reg_read32(cpu,rs2));
+                    break;
+
+                case 0x7:
+                    reg_write32(cpu, rd, reg_read32(cpu, rs1) & reg_read32(cpu,rs2));
+                    break;
+                default:
+                    printf("Unknown error at 0x33 opcode");
+            }    
+
+            break;
+
+        //3.2 - Integer Register-Immediate
+        case 0x13:
+            switch(funct3){
+                case(0x0):
+                    reg_write32(cpu,rd, reg_read32(cpu, rs1) + imm);
+                    break;
+                
+                case(0x7):
+                    reg_write32(cpu,rd, reg_read32(cpu, rs1) & imm);
+                    break;
+                
+                case(0x6):
+                    reg_write32(cpu,rd, reg_read32(cpu, rs1) | imm);
+                    break;
+
+                case(0x4):
+                    reg_write32(cpu,rd, reg_read32(cpu, rs1) ^ imm);
+                    break;
+                case(0x2):
+                    reg_write32(cpu,rd, (int32_t)reg_read32(cpu, rs1) < imm ? 1:0);
+                    break;
+                case(0x3):
+                    reg_write32(cpu,rd, reg_read32(cpu, rs1) < (uint32_t)imm ? 1:0);
+                    break;
+                case(0x1):
+                    if (funct7==0x00)
+                        reg_write32(cpu,rd, reg_read32(cpu, rs1) << shamt);
+                    break;
+                case(0x5):
+                    if (funct7==0x00)
+                        reg_write32(cpu,rd, reg_read32(cpu, rs1) >> (uint32_t)shamt);
+                    else if (funct7==0x20)
+                        reg_write32(cpu,rd, (int32_t)reg_read32(cpu, rs1) >> shamt);
+                    break;
+
+            }
+            break;
+
+        // Loads
+        case 0x03:
+            int32_t addr = reg_read32(cpu, rs1) + imm ;// address = base + offset
+            switch(funct3){
+                case(0x0):
+                    int8_t byte = (int8_t)mem_read8(cpu, addr);
+                    reg_write32(cpu, rd, (int32_t)byte);
+                    break;
+                case(0x1):
+                    int16_t half = (int16_t)mem_read16(cpu, addr);
+                    reg_write32(cpu, rd, (int32_t)half);
+                    break;
+                case(0x2):
+                    reg_write32(cpu, rd, mem_read32(cpu, addr));
+                    break;
+                case(0x4):
+                    reg_write32(cpu, rd, (uint32_t)mem_read8(cpu, addr));
+                    break;
+                case(0x5):
+                    reg_write32(cpu, rd, (uint32_t)mem_read16(cpu, addr));
+                    break;
+            }
+            break;
+        
+        case 0x23: // Stores
+            int32_t addr =  reg_read32(cpu, rs1) + imm;
+            switch(funct3){
+                case 0x0:
+                    
+                    break;
+                case 0x1:
+                    
+                    break;
+                case 0x2:
+                   
+                    break;
+            }
+            break;
+
+        case 0x63:
+            break;
+        
+        case 0x6F:
+            break;
+        
+        case 0x67:
+            break;
+
+        case 0x37:
+            break;
+        
+        case 0x17:
+            break;
+
+        case 0x73:
+            break;
+        
+        default:
+            printf(
+                "Unknown opcode: 0x%02X at PC: 0x%08X", opcode, cpu->pc
+            ); break;
+    }
     
-    // 3. EXECUTE - switch on opcode 
 
     // 4. advance pc by 4
+     cpu->pc+=4;
+     cpu->regs[0]=0;
+    }
 }
