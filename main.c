@@ -163,58 +163,113 @@ void cpu_loop(RISKVstate *cpu){
 
         // Loads
         case 0x03:
-            int32_t addr = reg_read32(cpu, rs1) + imm ;// address = base + offset
-            switch(funct3){
-                case(0x0):
-                    int8_t byte = (int8_t)mem_read8(cpu, addr);
-                    reg_write32(cpu, rd, (int32_t)byte);
-                    break;
-                case(0x1):
-                    int16_t half = (int16_t)mem_read16(cpu, addr);
-                    reg_write32(cpu, rd, (int32_t)half);
-                    break;
-                case(0x2):
-                    reg_write32(cpu, rd, mem_read32(cpu, addr));
-                    break;
-                case(0x4):
-                    reg_write32(cpu, rd, (uint32_t)mem_read8(cpu, addr));
-                    break;
-                case(0x5):
-                    reg_write32(cpu, rd, (uint32_t)mem_read16(cpu, addr));
-                    break;
+            {
+                int32_t addr = reg_read32(cpu, rs1) + imm ;// address = base + offset
+                switch(funct3){
+                    case(0x0):
+                        int8_t byte = (int8_t)mem_read8(cpu, addr);
+                        reg_write32(cpu, rd, (int32_t)byte);
+                        break;
+                    case(0x1):
+                        int16_t half = (int16_t)mem_read16(cpu, addr);
+                        reg_write32(cpu, rd, (int32_t)half);
+                        break;
+                    case(0x2):
+                        reg_write32(cpu, rd, mem_read32(cpu, addr));
+                        break;
+                    case(0x4):
+                        reg_write32(cpu, rd, (uint32_t)mem_read8(cpu, addr));
+                        break;
+                    case(0x5):
+                        reg_write32(cpu, rd, (uint32_t)mem_read16(cpu, addr));
+                        break;
+                }
             }
             break;
         
         case 0x23: // Stores  S-type
-            int32_t imm_s = ((int32_t)instr >> 20 & ~0x1F) | ((instr >> 7) & 0x1F);
-            uint32_t addr =  reg_read32(cpu, rs1) + imm_s;
-            uint32_t val = reg_read32(cpu, rs2)
+            {
+                int32_t imm_s = ((int32_t)inst >> 20 & ~0x1F) | ((inst >> 7) & 0x1F);
+                uint32_t addr =  reg_read32(cpu, rs1) + imm_s;
+                uint32_t val = reg_read32(cpu, rs2)
 
-            switch(funct3){
-                case 0x0:
-                    mem_read8(cpu, addr,  (uint8_t)(val & 0xFF));//8-bit  8-bit_memory
-                    break;
-                case 0x1:
-                    mem_read16(cpu, addr, (uint16_t)(val & 0xFFFF));
-                    break;
-                case 0x2://x[rs2][31:0]  (all 4 bytes)
-                    mem_read32(cpu, addr, val);//32-bit rs2
-                    break;
+                switch(funct3){
+                    case 0x0:
+                        mem_read8(cpu, addr,  (uint8_t)(val & 0xFF));//8-bit  8-bit_memory
+                        break;
+                    case 0x1:
+                        mem_read16(cpu, addr, (uint16_t)(val & 0xFFFF));
+                        break;
+                    case 0x2://x[rs2][31:0]  (all 4 bytes)
+                        mem_read32(cpu, addr, val);//32-bit rs2
+                        break;
+                }
             }
             break;
 
         case 0x63:// branches (B-type).
-            int32_t imm_b = ((int32_t)(instr & 0x80000000) >> 19)
-              | ((instr & 0x00000080) << 4)
-              | ((instr >> 20) & 0x7E0)
-              | ((instr >> 7)  & 0x1E);
+            {
+                int32_t imm_b = ((int32_t)(inst & 0x80000000) >> 19)
+                                | ((inst & 0x00000080) << 4)
+                                | ((inst >> 20) & 0x7E0)
+                                | ((inst >> 7)  & 0x1E);
+                            
+                int check=0;//flag
+
+                switch(funct3){
+                    case(0x0):
+                        check= (reg_read32(cpu,rs1)==reg_read32(cpu,rs2));
+                        break;  
+                    case(0x1):
+                        check=(reg_read32(cpu,rs1)!=reg_read32(cpu,rs2));
+                        break;
+                    case(0x4):
+                        check=((int32_t)reg_read32(cpu,rs1)<(int32_t)reg_read32(cpu,rs2));
+                        break;
+                    case(0x5):
+                        check=((int32_t)reg_read32(cpu,rs1)>=(int32_t)reg_read32(cpu,rs2));
+                        break;
+                    case(0x6):
+                        check=(reg_read32(cpu,rs1)<reg_read32(cpu,rs2));
+                        break;
+                    case(0x7):
+                        check=(reg_read32(cpu,rs1)>=reg_read32(cpu,rs2));
+                        break;
+                }
+                if (check){
+                    cpu->pc += imm_b;
+                    cpu->regs[0]=0;
+                    continue;
+                }
+            }
             break;
         
-        case 0x6F:
-            break;
+        case 0x6F://J-type
+            {
+                int32_t imm_j = ((int32_t)(inst & 0x80000000) >> 11)  // bit 20 of imm (sign)
+                                | (inst & 0x000FF000)                 // bits 19:12 of imm
+                                | ((inst >> 9)  & 0x800)              // bit 11 of imm ← inst[20]
+                                | ((inst >> 20) & 0x7FE);             // bits 10:1 of imm
+                
+                uint32_t return_addr = cpu->pc + 4;// save before modifying pc
+                uint32_t new_pc      = cpu->pc + imm_j;
+                reg_write32(cpu, rd, return_addr);
+                cpu->pc = new_pc;
+                cpu->regs[0] = 0;
+                continue;
+            }
+            
         
-        case 0x67:
-            break;
+        case 0x67://I-type
+            {
+                uint32_t target = (reg_read32(cpu,rs1) + imm) & ~1U;// compute target first
+                reg_write32(cpu,rd, cpu->pc +4);
+                cpu->pc = target;
+                cpu->regs[0]=0;
+                continue;
+
+            }
+            
 
         case 0x37:
             break;
