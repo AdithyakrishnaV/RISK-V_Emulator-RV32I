@@ -17,7 +17,7 @@
 └─────────────────────────────┘
 You build bottom up. Layer 1 first, layer 5 last.
 ```
-## 📋 Every function you will write — in order
+## 📋 Every function  — in order
 
 ### LAYER 1 — Foundation
 ```bash
@@ -31,7 +31,7 @@ init()           → zero everything, set pc to start address
 
 mem_read8()      → read 1 byte  from memory[addr]
 mem_read16()     → read 2 bytes from memory[addr]
-mem_read32()     → read 4 bytes from memory[addr]  ← you wrote this
+mem_read32()     → read 4 bytes from memory[addr]  
 mem_write8()     → write 1 byte  to memory[addr]
 mem_write16()    → write 2 bytes to memory[addr]
 mem_write32()    → write 4 bytes to memory[addr]   

@@ -185,22 +185,29 @@ void cpu_loop(RISKVstate *cpu){
             }
             break;
         
-        case 0x23: // Stores
-            int32_t addr =  reg_read32(cpu, rs1) + imm;
+        case 0x23: // Stores  S-type
+            int32_t imm_s = ((int32_t)instr >> 20 & ~0x1F) | ((instr >> 7) & 0x1F);
+            uint32_t addr =  reg_read32(cpu, rs1) + imm_s;
+            uint32_t val = reg_read32(cpu, rs2)
+
             switch(funct3){
                 case 0x0:
-                    
+                    mem_read8(cpu, addr,  (uint8_t)(val & 0xFF));//8-bit  8-bit_memory
                     break;
                 case 0x1:
-                    
+                    mem_read16(cpu, addr, (uint16_t)(val & 0xFFFF));
                     break;
-                case 0x2:
-                   
+                case 0x2://x[rs2][31:0]  (all 4 bytes)
+                    mem_read32(cpu, addr, val);//32-bit rs2
                     break;
             }
             break;
 
-        case 0x63:
+        case 0x63:// branches (B-type).
+            int32_t imm_b = ((int32_t)(instr & 0x80000000) >> 19)
+              | ((instr & 0x00000080) << 4)
+              | ((instr >> 20) & 0x7E0)
+              | ((instr >> 7)  & 0x1E);
             break;
         
         case 0x6F:
