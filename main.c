@@ -16,7 +16,6 @@ RISKVstate rv;
 int init(void){
     memset(&rv,0,sizeof(rv));// fill memmory or set memory with 0's
     rv.pc=0x00000000;
-
     return 0;
 }
 // memory read 32 bit
@@ -167,12 +166,16 @@ void cpu_loop(RISKVstate *cpu){
                 int32_t addr = reg_read32(cpu, rs1) + imm ;// address = base + offset
                 switch(funct3){
                     case(0x0):
-                        int8_t byte = (int8_t)mem_read8(cpu, addr);
-                        reg_write32(cpu, rd, (int32_t)byte);
+                        {
+                            int8_t byte = (int8_t)mem_read8(cpu, addr);
+                            reg_write32(cpu, rd, (int32_t)byte);
+                        }
                         break;
                     case(0x1):
-                        int16_t half = (int16_t)mem_read16(cpu, addr);
-                        reg_write32(cpu, rd, (int32_t)half);
+                        {
+                            int16_t half = (int16_t)mem_read16(cpu, addr);
+                            reg_write32(cpu, rd, (int32_t)half);
+                        }
                         break;
                     case(0x2):
                         reg_write32(cpu, rd, mem_read32(cpu, addr));
@@ -191,17 +194,17 @@ void cpu_loop(RISKVstate *cpu){
             {
                 int32_t imm_s = ((int32_t)inst >> 20 & ~0x1F) | ((inst >> 7) & 0x1F);
                 uint32_t addr =  reg_read32(cpu, rs1) + imm_s;
-                uint32_t val = reg_read32(cpu, rs2)
+                uint32_t val = reg_read32(cpu, rs2);
 
                 switch(funct3){
                     case 0x0:
-                        mem_read8(cpu, addr,  (uint8_t)(val & 0xFF));//8-bit  8-bit_memory
+                        mem_write8(cpu, addr,  (uint8_t)(val & 0xFF));//8-bit  8-bit_memory
                         break;
                     case 0x1:
-                        mem_read16(cpu, addr, (uint16_t)(val & 0xFFFF));
+                        mem_write16(cpu, addr, (uint16_t)(val & 0xFFFF));
                         break;
                     case 0x2://x[rs2][31:0]  (all 4 bytes)
-                        mem_read32(cpu, addr, val);//32-bit rs2
+                        mem_write32(cpu, addr, val);//32-bit rs2
                         break;
                 }
             }
@@ -258,6 +261,7 @@ void cpu_loop(RISKVstate *cpu){
                 cpu->regs[0] = 0;
                 continue;
             }
+            break;
             
         
         case 0x67://I-type
@@ -269,16 +273,55 @@ void cpu_loop(RISKVstate *cpu){
                 continue;
 
             }
+            break;// continue skips everything anyway, but it's cleaner and prevents compiler warnings.
             
 
-        case 0x37:
+        case 0x37:// U-type Upper Immediate
+            {
+                uint32_t imm_u = inst & 0xFFFFF000;
+                reg_write32(cpu, rd, imm_u);
+            }
             break;
         
-        case 0x17:
+        case 0x17:// U-type Upper Immediate
+            {
+                uint32_t imm_u = inst & 0xFFFFF000;
+                reg_write32(cpu, rd, cpu->pc + imm_u);
+            }
             break;
 
         case 0x73:
-            break;
+            {
+                uint32_t which = (inst >> 20) & 0xFFF; // imm field
+
+                if (which == 0){//ECALL   
+                    uint32_t syscall= reg_read32(cpu, 17);// a7 = x17
+                    uint32_t arg0 = reg_read32(cpu, 10);// a0 = x10
+                    uint32_t arg1    = reg_read32(cpu, 11); // a1 = x11
+
+                    if(syscall == 10 || syscall == 93){     // exit
+                        printf("[ECALL] exit(%d)\n", arg0);
+                        return;
+                    }
+                    if(syscall == 1){                        // print integer
+                        printf("%d", (int32_t)arg1);         // a1 holds the number
+                    }
+                    if(syscall == 4){                        // print string
+                        uint32_t addr = arg1;                // a1 holds the address
+                        while(1){
+                            uint8_t ch = mem_read8(cpu, addr);
+                            if(ch == 0) break;
+                            putchar(ch);
+                            addr++;
+                        }
+                    }
+
+                }else if(which == 1){ // EBREAK
+                    printf("[EBREAK] debugger trap at PC=0x%08X\n", cpu->pc);
+                    return;
+                }
+                break;
+            }
         
         default:
             printf(
