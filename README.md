@@ -1,6 +1,7 @@
 # RISC-V RV32I (32-bit address space)
 ### <a href="https://adithyakrishnav.github.io/riskV-32I-documentation.github.io/">Documentation</a>
 
+### <a href="https://medium.com/@zodiacHacker/risk-v-emulator-in-c-development-from-scratch-9be3e7399bce">Blog</a>
 
 ## 🏗️ The 5 Layers (bottom to top)
 ```bash
