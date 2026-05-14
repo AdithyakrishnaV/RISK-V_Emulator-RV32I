@@ -87,7 +87,7 @@ void cpu_loop(RISKVstate *cpu){
                     break;
 
                 case 0x1://SLL 
-                    reg_write32(cpu, rd, reg_read32(cpu, rs1)<< reg_read32(cpu,rs2));
+                    reg_write32(cpu, rd, reg_read32(cpu, rs1)<< reg_read32(cpu,rs2)& 0x1F);
                     break;
 
                 case 0x2://SLT (signed comparison)
@@ -104,9 +104,9 @@ void cpu_loop(RISKVstate *cpu){
 
                 case 0x5:
                     if (funct7==0x00)//SRL
-                        reg_write32(cpu, rd, reg_read32(cpu, rs1) >> reg_read32(cpu,rs2));
+                        reg_write32(cpu, rd, reg_read32(cpu, rs1) >> reg_read32(cpu,rs2)& 0x1F);
                     else if(funct7==0x20)//SRA
-                        reg_write32(cpu, rd, (int32_t)reg_read32(cpu, rs1) >> (int32_t)reg_read32(cpu,rs2));
+                        reg_write32(cpu, rd, (int32_t)reg_read32(cpu, rs1) >> (int32_t)reg_read32(cpu,rs2)& 0x1F);
                     break;
 
                 case 0x6://OR
@@ -163,7 +163,7 @@ void cpu_loop(RISKVstate *cpu){
         // Loads
         case 0x03:
             {
-                int32_t addr = reg_read32(cpu, rs1) + imm ;// address = base + offset
+                uint32_t addr = reg_read32(cpu, rs1) + imm ;// address = base + offset
                 switch(funct3){
                     case(0x0):
                         {
@@ -334,4 +334,43 @@ void cpu_loop(RISKVstate *cpu){
      cpu->pc+=4;
      cpu->regs[0]=0;
     }
+}
+int load_binary(RISKVstate *cpu, const char *filename){
+    FILE *f = fopen(filename, "rb");
+    if(!f){
+        printf("Error: cannot open '%s'\n", filename);
+        return -1;
+    }
+
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    if(size > MEM_SIZE){
+        printf("Error: file too large\n");
+        fclose(f);
+        return -1;
+    }
+
+    fread(&cpu->memory[0], 1, size, f);
+    fclose(f);
+    printf("Loaded '%s' (%ld bytes)\n", filename, size);
+    return 0;
+}
+
+int main(int argc, char *argv[]){
+    if(argc < 2){
+        printf("Usage: ./riskv <program.bin>\n");
+        return 1;
+    }
+
+    init();
+
+    if(load_binary(&rv, argv[1]) != 0)
+        return 1;
+
+    rv.pc = 0x00000000;
+    cpu_loop(&rv);
+
+    return 0;
 }
