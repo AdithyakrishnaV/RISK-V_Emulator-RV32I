@@ -3,7 +3,7 @@
 
 ### <a href="https://medium.com/@zodiacHacker/risk-v-emulator-in-c-development-from-scratch-9be3e7399bce">Blog</a>
 
-### <a href=" https://youtu.be/j6WYiltHcGo?si=hHZLu4IfP0IdD90h">Video</a>
+### <a href="https://youtu.be/j6WYiltHcGo?si=hHZLu4IfP0IdD90h">Video</a>
 
 
 ## 🏗️ The 5 Layers (bottom to top)
